@@ -1,0 +1,59 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "User account and profile metadata",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "lastLoginAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "users/resumeAnalyses": {
+      "title": "Resume Analysis",
+      "description": "Saved resume ATS analysis results",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fileName": { "type": "string" },
+        "targetRole": { "type": "string" },
+        "companyName": { "type": "string" },
+        "originalScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "createdAt"]
+    },
+    "users/generatedResumes": {
+      "title": "Generated Resume",
+      "description": "Optimized generated resume records",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "templateId": { "type": "string" },
+        "targetRole": { "type": "string" },
+        "companyName": { "type": "string" },
+        "afterScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "createdAt"]
+    },
+    "users/jobDescriptions": {
+      "title": "Job Description",
+      "description": "Saved job descriptions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "company": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "createdAt"]
+    }
+  }
+}

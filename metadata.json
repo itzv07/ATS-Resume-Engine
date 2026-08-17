@@ -1,0 +1,8 @@
+{
+  "name": "ATS Resume Analyzer & Builder",
+  "description": "AI-powered ATS Resume Analyzer and JD-Specific Resume Builder. Upload resumes, paste job descriptions, receive detailed ATS scoring, missing skill & keyword analysis, truthful non-fabricated recommendations, role-based ATS templates, live preview, and PDF/DOCX downloads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

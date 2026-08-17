@@ -1,0 +1,157 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=JetBrains+Mono:wght@400;500&family=Instrument+Serif:ital@0;1&family=Tomorrow:wght@700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-serif: "Instrument Serif", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+  --font-tomorrow: "Tomorrow", sans-serif;
+}
+
+body {
+  background-color: #F8F9F3; /* Pale yellow/greenish */
+  color: #111111;
+  overflow-y: auto;
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  user-select: text;
+}
+
+/* Custom scrollbar for text inside cards */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 4px;
+}
+
+/* Subtle dot pattern */
+.dot-grid {
+  background-image: radial-gradient(#d1d5db 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Dedicated High-Fidelity Print Style Sheet for Exact Resume PDF / Native Print */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
+  }
+
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    box-sizing: border-box !important;
+    text-shadow: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+  }
+
+  /* Completely suppress all navigation, headers, footers, toolbars, buttons, alerts, modals */
+  header,
+  footer,
+  nav,
+  button,
+  input,
+  textarea,
+  select,
+  .no-print,
+  .print\:hidden,
+  [role="dialog"],
+  [role="alert"],
+  .fixed,
+  .sticky {
+    display: none !important;
+  }
+
+  /* Reset all outer containers so no margins, padding, backgrounds, borders, or transforms interfere */
+  #root,
+  #root > div,
+  main,
+  .custom-scrollbar,
+  .max-w-6xl,
+  .max-w-7xl,
+  .dot-grid {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    background-image: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    border: none !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+    transform: none !important;
+    display: block !important;
+  }
+
+  /* Reset preview wrappers and scale transforms */
+  .shrink-0,
+  div[style*="scale"] {
+    transform: none !important;
+    transform-origin: initial !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    display: block !important;
+  }
+
+  /* The actual ATS Resume document canvas */
+  #resume-preview-document {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: auto !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #111111 !important;
+    box-shadow: none !important;
+    border: none !important;
+    transform: none !important;
+    overflow: visible !important;
+  }
+
+  #resume-preview-document * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Ensure headings don't get orphaned at the bottom of a page */
+  h1, h2, h3, h4, h5, h6 {
+    break-after: avoid !important;
+    page-break-after: avoid !important;
+  }
+
+  /* Allow natural flow for list items and experience blocks */
+  ul, li, p {
+    break-inside: auto !important;
+    page-break-inside: auto !important;
+  }
+}
