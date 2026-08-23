@@ -27,7 +27,7 @@ The analysis includes:
 - Resume structure
 - ATS parsing compatibility
 - Section completeness
-- Keyword placement
+- Keyword placement 
 - Overall JD relevance
 
 The score is an **estimated platform-generated compatibility score**, not an official score from any ATS vendor.
