@@ -13,7 +13,7 @@ async function startServer() {
   app.use(express.json({ limit: "50mb" }));
 
   // Gemini API key loaded from environment variables (.env)
-  const apiKey = (process.env.GEMINI_API_KEY || process.env.ATS_PROJECT_GEMINI_API_KEY || "").trim();    
+  const apiKey = (process.env.GEMINI_API_KEY || process.env.ATS_PROJECT_GEMINI_API_KEY || "").trim();       
   
   const ai = new GoogleGenAI({
     apiKey: apiKey || process.env.GEMINI_API_KEY || "",
