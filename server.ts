@@ -252,9 +252,9 @@ async function startServer() {
   // High-resilience Gemini API Caller with Exponential Backoff and Rate-Limit Defense
   async function callGeminiWithRetry(aiClient: GoogleGenAI, params: any, maxAttempts = 3) {
     const candidateModels = [
-      params.model || "gemini-3.7-flash",
-      "gemini-3.1-flash-lite",
-      "gemini-flash-latest"
+      params.model || "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-1.5-flash"
     ];
     // Remove duplicate model names
     const modelsToTry = Array.from(new Set(candidateModels));
@@ -317,7 +317,7 @@ async function startServer() {
       // Handle PDF or image base64 via Gemini
       const cleanBase64 = fileBase64.replace(/^data:[^;]+;base64,/, '');
       const response = await callGeminiWithRetry(ai, {
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-2.5-flash",
         contents: [
           {
             inlineData: {
@@ -331,14 +331,18 @@ async function startServer() {
         ]
       });
 
-      let extractedText = response ? (response.text || "") : "";
-      if (!extractedText) {
-        extractedText = fileText || "Candidate Resume\nSoftware Engineer\nEmail: candidate@example.com | Phone: +1 555-0199\n\nExperience:\nSoftware Engineer - Tech Solutions (2022-Present)\n- Developed full stack web applications using JavaScript, React, Node.js, and SQL.\n- Improved API response times and database query efficiency.\n\nEducation:\nB.S. in Computer Science - State University\n\nSkills:\nJavaScript, TypeScript, React, Node.js, SQL, Git";
+      const extractedText = response ? (response.text || "").trim() : "";
+      if (!extractedText || extractedText.length === 0) {
+        return res.status(500).json({ 
+          error: "Error occurred, try again (Recommended to try again after 2 minutes)" 
+        });
       }
-      res.json({ text: extractedText.trim(), fileName: fileName || 'Uploaded Document' });
+      res.json({ text: extractedText, fileName: fileName || 'Uploaded Document' });
     } catch (error: any) {
       console.error("Text extraction error:", error);
-      res.status(500).json({ error: error.message || "Failed to extract text from file. Please paste text directly." });
+      res.status(500).json({ 
+        error: "Error occurred, try again (Recommended to try again after 2 minutes)" 
+      });
     }
   });
 

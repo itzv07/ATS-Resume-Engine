@@ -26,6 +26,8 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
   const { user, openAuthModal } = useAuth();
   const [isExtractingResume, setIsExtractingResume] = useState(false);
   const [isExtractingJd, setIsExtractingJd] = useState(false);
+  const [resumeUploadError, setResumeUploadError] = useState<string | null>(null);
+  const [jdUploadError, setJdUploadError] = useState<string | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'resume' | 'jd') => {
@@ -34,8 +36,10 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
 
     setUploadError(null);
     if (target === 'resume') {
+      setResumeUploadError(null);
       setIsExtractingResume(true);
     } else {
+      setJdUploadError(null);
       setIsExtractingJd(true);
     }
 
@@ -45,9 +49,12 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         if (target === 'resume') {
           setResumeText(text);
           setResumeFileName(file.name);
+          setResumeUploadError(null);
         } else {
           setJobDescription(text);
+          setJdUploadError(null);
         }
+        setUploadError(null);
       } else {
         // Read file as base64 using Promise so we properly await FileReader
         const base64 = await new Promise<string>((resolve, reject) => {
@@ -68,20 +75,36 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
         });
 
         const data = await res.json();
-        if (data.text) {
+        if (res.ok && data.text && typeof data.text === 'string' && data.text.trim().length > 0) {
           if (target === 'resume') {
             setResumeText(data.text);
             setResumeFileName(file.name);
+            setResumeUploadError(null);
           } else {
             setJobDescription(data.text);
+            setJdUploadError(null);
           }
+          setUploadError(null);
         } else {
-          throw new Error(data.error || 'Failed to extract document text');
+          throw new Error(data.error || 'Error occurred, try again (Recommended to try again after 2 minutes)');
         }
       }
     } catch (err: any) {
       console.error(err);
-      setUploadError(err.message || 'Failed to parse document. Please copy & paste the text directly.');
+      const errMsg = 'Error occurred, try again';
+      if (target === 'resume') {
+        setResumeFileName('');
+        if (resumeText.includes("Software Engineer - Tech Solutions") || resumeText.includes("candidate@example.com")) {
+          setResumeText('');
+        }
+        setResumeUploadError(errMsg);
+      } else {
+        if (jobDescription.includes("Software Engineer - Tech Solutions") || jobDescription.includes("candidate@example.com")) {
+          setJobDescription('');
+        }
+        setJdUploadError(errMsg);
+      }
+      setUploadError(errMsg);
     } finally {
       if (target === 'resume') {
         setIsExtractingResume(false);
@@ -153,12 +176,15 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
       )}
 
       {uploadError && (
-        <div className="p-4 bg-red-50 border-2 border-red-600 rounded text-red-800 text-xs font-mono flex items-center justify-between gap-2 shadow-[2px_2px_0px_#dc2626]">
+        <div className="p-4 bg-red-50 border-2 border-red-600 rounded text-black text-xs font-mono flex items-center justify-between gap-2 shadow-[3px_3px_0px_#dc2626] animate-in fade-in duration-200">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
-            <span>{uploadError}</span>
+            <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+            <div className="flex flex-wrap items-center gap-1.5 font-bold">
+              <span className="text-black">Error occurred, try again</span>
+              <span className="text-red-600 font-extrabold font-mono underline">(Recommended to try again after 2 minutes)</span>
+            </div>
           </div>
-          <button onClick={() => setUploadError(null)} className="cursor-pointer">
+          <button onClick={() => setUploadError(null)} className="cursor-pointer hover:bg-red-100 p-1 rounded text-red-700">
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -211,6 +237,20 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
+
+          {/* Resume Upload Error Notice */}
+          {resumeUploadError && (
+            <div className="p-2.5 bg-red-50 border-2 border-red-500 rounded text-xs font-mono flex items-center justify-between gap-1 shadow-[2px_2px_0px_#dc2626] animate-in fade-in">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span className="font-bold text-black">Error occurred, try again</span>
+                <span className="text-red-600 font-extrabold">(Recommended to try again after 2 minutes)</span>
+              </div>
+              <button onClick={() => setResumeUploadError(null)} className="cursor-pointer text-red-700 hover:text-black">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Editable Resume Text Box */}
           <div className="flex flex-col gap-1">
@@ -285,6 +325,20 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
+
+          {/* JD Upload Error Notice */}
+          {jdUploadError && (
+            <div className="p-2.5 bg-red-50 border-2 border-red-500 rounded text-xs font-mono flex items-center justify-between gap-1 shadow-[2px_2px_0px_#dc2626] animate-in fade-in">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
+                <span className="font-bold text-black">Error occurred, try again</span>
+                <span className="text-red-600 font-extrabold">(Recommended to try again after 2 minutes)</span>
+              </div>
+              <button onClick={() => setJdUploadError(null)} className="cursor-pointer text-red-700 hover:text-black">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Editable JD Text Box */}
           <div className="flex flex-col gap-1">
