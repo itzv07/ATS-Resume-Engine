@@ -252,9 +252,10 @@ async function startServer() {
   // High-resilience Gemini API Caller with Exponential Backoff and Rate-Limit Defense
   async function callGeminiWithRetry(aiClient: GoogleGenAI, params: any, maxAttempts = 3) {
     const candidateModels = [
-      params.model || "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-1.5-flash"
+      params.model || "gemini-3.8-flash",
+      "gemini-3.8-flash",
+      "gemini-3.5-flash",
+      "gemini-3.1-flash-lite"
     ];
     // Remove duplicate model names
     const modelsToTry = Array.from(new Set(candidateModels));
@@ -317,7 +318,7 @@ async function startServer() {
       // Handle PDF or image base64 via Gemini
       const cleanBase64 = fileBase64.replace(/^data:[^;]+;base64,/, '');
       const response = await callGeminiWithRetry(ai, {
-        model: "gemini-2.5-flash",
+        model: "gemini-3.8-flash",
         contents: [
           {
             inlineData: {
@@ -410,7 +411,7 @@ Perform a rigorous evaluation and return a structured JSON response matching the
 `;
 
       const response = await callGeminiWithRetry(ai, {
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.8-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -784,7 +785,7 @@ Return JSON matching this schema.
 `;
 
       const response = await callGeminiWithRetry(ai, {
-        model: "gemini-3.1-flash-lite",
+        model: "gemini-3.8-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
