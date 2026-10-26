@@ -24,7 +24,8 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
   isAnalyzing
 }) => {
   const { user, openAuthModal } = useAuth();
-  const [isExtractingFile, setIsExtractingFile] = useState(false);
+  const [isExtractingResume, setIsExtractingResume] = useState(false);
+  const [isExtractingJd, setIsExtractingJd] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, target: 'resume' | 'jd') => {
@@ -32,7 +33,11 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
     if (!file) return;
 
     setUploadError(null);
-    setIsExtractingFile(true);
+    if (target === 'resume') {
+      setIsExtractingResume(true);
+    } else {
+      setIsExtractingJd(true);
+    }
 
     try {
       if (file.type === 'text/plain' || file.name.endsWith('.txt') || file.name.endsWith('.md')) {
@@ -44,38 +49,46 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           setJobDescription(text);
         }
       } else {
-        // Send to server Gemini parser for PDF or DOCX text extraction
-        const reader = new FileReader();
-        reader.onload = async () => {
-          const base64 = reader.result as string;
-          const res = await fetch('/api/extract-file-text', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              fileBase64: base64,
-              fileName: file.name,
-              mimeType: file.type || 'application/pdf'
-            })
-          });
-          const data = await res.json();
-          if (data.text) {
-            if (target === 'resume') {
-              setResumeText(data.text);
-              setResumeFileName(file.name);
-            } else {
-              setJobDescription(data.text);
-            }
+        // Read file as base64 using Promise so we properly await FileReader
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = () => reject(new Error("Failed to read file from disk."));
+          reader.readAsDataURL(file);
+        });
+
+        const res = await fetch('/api/extract-file-text', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileBase64: base64,
+            fileName: file.name,
+            mimeType: file.type || 'application/pdf'
+          })
+        });
+
+        const data = await res.json();
+        if (data.text) {
+          if (target === 'resume') {
+            setResumeText(data.text);
+            setResumeFileName(file.name);
           } else {
-            throw new Error(data.error || 'Failed to extract document text');
+            setJobDescription(data.text);
           }
-        };
-        reader.readAsDataURL(file);
+        } else {
+          throw new Error(data.error || 'Failed to extract document text');
+        }
       }
     } catch (err: any) {
       console.error(err);
-      setUploadError('Failed to parse document. Please copy & paste the text directly.');
+      setUploadError(err.message || 'Failed to parse document. Please copy & paste the text directly.');
     } finally {
-      setIsExtractingFile(false);
+      if (target === 'resume') {
+        setIsExtractingResume(false);
+      } else {
+        setIsExtractingJd(false);
+      }
+      e.target.value = '';
     }
   };
 
@@ -171,25 +184,31 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           </div>
 
           {/* File Upload Zone */}
-          <div className="border-2 border-dashed border-gray-400 hover:border-black rounded p-4 bg-[#F8F9F3] text-center flex flex-col items-center justify-center gap-2 relative transition-colors">
+          <div className="border-2 border-dashed border-gray-400 hover:border-black rounded p-4 bg-[#F8F9F3] text-center flex flex-col items-center justify-center gap-2 relative transition-colors overflow-hidden min-h-[110px]">
+            {isExtractingResume && (
+              <div className="absolute inset-0 bg-yellow-50/95 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-10 border-2 border-yellow-400 p-3 animate-in fade-in duration-200">
+                <Loader2 className="w-8 h-8 animate-spin text-black" />
+                <span className="font-mono text-xs font-bold uppercase text-black bg-yellow-300 px-2.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000]">
+                  Parsing Resume File...
+                </span>
+                <span className="font-mono text-[10px] text-gray-700">
+                  Extracting text from uploaded document
+                </span>
+              </div>
+            )}
             <Upload className="w-6 h-6 text-gray-600" />
             <div className="font-mono text-xs font-bold text-black">
-              {isExtractingFile ? (
-                <span className="flex items-center gap-2 justify-center text-amber-700">
-                  <Loader2 className="w-4 h-4 animate-spin" /> Extracting document text...
-                </span>
-              ) : (
-                'Upload PDF, DOCX, or TXT file'
-              )}
+              Upload PDF, DOCX, or TXT file
             </div>
             <p className="font-mono text-[10px] text-gray-500">
               Drag & drop or click to browse resume document
             </p>
             <input
               type="file"
+              disabled={isExtractingResume}
               accept=".pdf,.docx,.doc,.txt,.md"
               onChange={(e) => handleFileUpload(e, 'resume')}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
 
@@ -239,7 +258,18 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
           </div>
 
           {/* JD File Upload Option */}
-          <div className="border-2 border-dashed border-gray-400 hover:border-black rounded p-4 bg-[#F8F9F3] text-center flex flex-col items-center justify-center gap-2 relative transition-colors">
+          <div className="border-2 border-dashed border-gray-400 hover:border-black rounded p-4 bg-[#F8F9F3] text-center flex flex-col items-center justify-center gap-2 relative transition-colors overflow-hidden min-h-[110px]">
+            {isExtractingJd && (
+              <div className="absolute inset-0 bg-blue-50/95 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-10 border-2 border-blue-400 p-3 animate-in fade-in duration-200">
+                <Loader2 className="w-8 h-8 animate-spin text-blue-900" />
+                <span className="font-mono text-xs font-bold uppercase text-blue-950 bg-blue-200 px-2.5 py-0.5 rounded border border-black shadow-[1px_1px_0px_#000]">
+                  Parsing Job Description...
+                </span>
+                <span className="font-mono text-[10px] text-gray-700">
+                  Extracting text from uploaded JD file
+                </span>
+              </div>
+            )}
             <Upload className="w-6 h-6 text-gray-600" />
             <div className="font-mono text-xs font-bold text-black">
               Upload JD file (Optional)
@@ -249,9 +279,10 @@ export const ResumeUploader: React.FC<ResumeUploaderProps> = ({
             </p>
             <input
               type="file"
+              disabled={isExtractingJd}
               accept=".pdf,.docx,.doc,.txt,.md"
               onChange={(e) => handleFileUpload(e, 'jd')}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
             />
           </div>
 
