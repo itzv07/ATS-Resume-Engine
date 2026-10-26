@@ -20,6 +20,7 @@ interface AuthContextType {
   signUpWithEmail: (e: string, p: string, name: string) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  continueAsGuest: () => void;
   logout: () => Promise<void>;
   updateProfileData: (data: Partial<UserProfileData>) => Promise<void>;
   isAuthModalOpen: boolean;
@@ -45,8 +46,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      setUser(currentUser);
       if (currentUser) {
+        setUser(currentUser);
         try {
           let profile = await getUserProfile(currentUser.uid);
           if (!profile) {
@@ -63,7 +64,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.error("Failed to load user profile from Firestore:", err);
         }
       } else {
-        setUserProfile(null);
+        // Check if a guest session is active
+        try {
+          const storedGuest = localStorage.getItem('ats_guest_session');
+          if (storedGuest) {
+            const parsed = JSON.parse(storedGuest);
+            setUser(parsed);
+            setUserProfile({
+              uid: parsed.uid,
+              email: parsed.email,
+              displayName: parsed.displayName,
+              photoURL: parsed.photoURL || ''
+            });
+          } else {
+            setUser(null);
+            setUserProfile(null);
+          }
+        } catch {
+          setUser(null);
+          setUserProfile(null);
+        }
       }
       setLoading(false);
     });
@@ -72,6 +92,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const signInWithEmail = async (email: string, pass: string) => {
+    try {
+      localStorage.removeItem('ats_guest_session');
+    } catch {}
     const cred = await signInWithEmailAndPassword(auth, email, pass);
     if (cred.user) {
       await saveUserProfile(cred.user.uid, {
@@ -85,6 +108,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string) => {
+    try {
+      localStorage.removeItem('ats_guest_session');
+    } catch {}
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     if (cred.user) {
       if (name.trim()) {
@@ -106,6 +132,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const signInWithGoogle = async () => {
+    try {
+      localStorage.removeItem('ats_guest_session');
+    } catch {}
     const result = await signInWithPopup(auth, googleProvider);
     if (result.user) {
       await saveUserProfile(result.user.uid, {
@@ -119,17 +148,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  const continueAsGuest = () => {
+    const guestUser: any = {
+      uid: 'guest-' + Math.random().toString(36).substring(2, 9),
+      email: 'guest@demo.local',
+      displayName: 'Guest Candidate',
+      isAnonymous: true,
+      photoURL: ''
+    };
+    setUser(guestUser);
+    setUserProfile({
+      uid: guestUser.uid,
+      email: guestUser.email,
+      displayName: guestUser.displayName,
+      photoURL: ''
+    });
+    try {
+      localStorage.setItem('ats_guest_session', JSON.stringify(guestUser));
+    } catch {}
+    closeAuthModal();
+  };
+
   const logout = async () => {
-    await signOut(auth);
+    try {
+      localStorage.removeItem('ats_guest_session');
+    } catch {}
+    if (auth.currentUser) {
+      await signOut(auth);
+    }
     setUser(null);
     setUserProfile(null);
   };
 
   const updateProfileData = async (data: Partial<UserProfileData>) => {
     if (!user) return;
-    await saveUserProfile(user.uid, data);
-    const updated = await getUserProfile(user.uid);
-    setUserProfile(updated);
+    if (!user.uid.startsWith('guest-') && !user.isAnonymous) {
+      await saveUserProfile(user.uid, data);
+      const updated = await getUserProfile(user.uid);
+      setUserProfile(updated);
+    } else {
+      setUserProfile(prev => prev ? ({ ...prev, ...data }) : null);
+    }
   };
 
   const openAuthModal = (mode: 'signin' | 'signup' | 'forgot_password' = 'signin') => {
@@ -151,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       signUpWithEmail,
       resetPassword,
       signInWithGoogle,
+      continueAsGuest,
       logout,
       updateProfileData,
       isAuthModalOpen,

@@ -89,7 +89,7 @@ function ATSResumeApp() {
               optimizedProfile: updatedProfile
             } : undefined
           };
-          if (user) {
+          if (user && !user.uid.startsWith('guest-') && !user.isAnonymous) {
             saveUserAnalysisSession(user.uid, updatedS).catch(e => console.error(e));
           }
           return updatedS;
@@ -103,7 +103,7 @@ function ATSResumeApp() {
   // Load Firestore sessions when user logs in
   useEffect(() => {
     async function loadUserSessions() {
-      if (user) {
+      if (user && !user.uid.startsWith('guest-') && !user.isAnonymous) {
         try {
           const userSessions = await getUserAnalysisSessions(user.uid);
           setSavedSessions(userSessions);
@@ -125,7 +125,7 @@ function ATSResumeApp() {
 
   // Save guest sessions to localStorage
   useEffect(() => {
-    if (!user) {
+    if (!user || user.uid.startsWith('guest-') || user.isAnonymous) {
       try {
         localStorage.setItem('ats_resume_sessions', JSON.stringify(savedSessions));
       } catch (err) {
@@ -218,9 +218,13 @@ function ATSResumeApp() {
 
       setSavedSessions(prev => [newSession, ...prev]);
 
-      // If user is authenticated, save directly to Firestore under user's UID
-      if (user) {
-        await saveUserAnalysisSession(user.uid, newSession);
+      // If user is authenticated with Firebase, save directly to Firestore under user's UID
+      if (user && !user.uid.startsWith('guest-') && !user.isAnonymous) {
+        try {
+          await saveUserAnalysisSession(user.uid, newSession);
+        } catch (e) {
+          console.warn("Could not save session to Firestore:", e);
+        }
       }
 
       // Move to Analysis tab
@@ -293,8 +297,12 @@ function ATSResumeApp() {
         })
       );
 
-      if (user && updatedSession) {
-        await saveUserAnalysisSession(user.uid, updatedSession);
+      if (user && !user.uid.startsWith('guest-') && !user.isAnonymous && updatedSession) {
+        try {
+          await saveUserAnalysisSession(user.uid, updatedSession);
+        } catch (e) {
+          console.warn("Could not update session in Firestore:", e);
+        }
       }
 
       // Navigate to Preview tab
@@ -323,15 +331,23 @@ function ATSResumeApp() {
 
   const handleDeleteSession = async (id: string) => {
     setSavedSessions(prev => prev.filter(s => s.id !== id));
-    if (user) {
-      await deleteUserAnalysisSession(user.uid, id);
+    if (user && !user.uid.startsWith('guest-') && !user.isAnonymous) {
+      try {
+        await deleteUserAnalysisSession(user.uid, id);
+      } catch (e) {
+        console.warn("Could not delete session from Firestore:", e);
+      }
     }
   };
 
   const handleClearAllSessions = async () => {
     setSavedSessions([]);
-    if (user) {
-      await clearAllUserAnalysisSessions(user.uid);
+    if (user && !user.uid.startsWith('guest-') && !user.isAnonymous) {
+      try {
+        await clearAllUserAnalysisSessions(user.uid);
+      } catch (e) {
+        console.warn("Could not clear sessions from Firestore:", e);
+      }
     }
   };
 

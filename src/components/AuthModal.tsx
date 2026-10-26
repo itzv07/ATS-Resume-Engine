@@ -10,7 +10,8 @@ export const AuthModal: React.FC = () => {
     signInWithEmail, 
     signUpWithEmail, 
     resetPassword,
-    signInWithGoogle 
+    signInWithGoogle,
+    continueAsGuest
   } = useAuth();
 
   const [mode, setMode] = useState<'signin' | 'signup' | 'forgot_password'>(authModalMode);
@@ -48,7 +49,9 @@ export const AuthModal: React.FC = () => {
         const code = err.code || '';
         const rawMsg = err.message || '';
         let msg = "Failed to send password reset email. Please verify the email address.";
-        if (code === 'auth/user-not-found' || rawMsg.includes('user-not-found')) {
+        if (code === 'auth/unauthorized-domain' || rawMsg.includes('unauthorized-domain')) {
+          msg = "auth/unauthorized-domain: Domain is not authorized in Firebase Console.";
+        } else if (code === 'auth/user-not-found' || rawMsg.includes('user-not-found')) {
           msg = "No account found with this email address. Please register a new account.";
         } else if (code === 'auth/invalid-email' || rawMsg.includes('invalid-email')) {
           msg = "Please enter a valid email address format.";
@@ -89,7 +92,9 @@ export const AuthModal: React.FC = () => {
       const rawMsg = err.message || '';
       let msg = "Authentication failed. Please check your details.";
 
-      if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential' || rawMsg.includes('invalid-credential') || rawMsg.includes('user-not-found') || rawMsg.includes('wrong-password')) {
+      if (code === 'auth/unauthorized-domain' || rawMsg.includes('unauthorized-domain')) {
+        msg = "auth/unauthorized-domain: Domain is not authorized in Firebase Console.";
+      } else if (code === 'auth/wrong-password' || code === 'auth/user-not-found' || code === 'auth/invalid-credential' || rawMsg.includes('invalid-credential') || rawMsg.includes('user-not-found') || rawMsg.includes('wrong-password')) {
         msg = "Invalid email or password. If you forgot your password, click 'Forgot Password?' below, or switch to 'Create Account' to register.";
       } else if (code === 'auth/email-already-in-use' || rawMsg.includes('email-already-in-use')) {
         msg = "An account with this email address already exists. Please switch to Sign In or use Google Sign-In.";
@@ -120,7 +125,9 @@ export const AuthModal: React.FC = () => {
       const code = err.code || '';
       const rawMsg = err.message || '';
       let msg = "Google Sign-In failed. Please try again.";
-      if (code === 'auth/popup-closed-by-user' || rawMsg.includes('popup-closed-by-user')) {
+      if (code === 'auth/unauthorized-domain' || rawMsg.includes('unauthorized-domain')) {
+        msg = "auth/unauthorized-domain: Domain is not authorized in Firebase Console.";
+      } else if (code === 'auth/popup-closed-by-user' || rawMsg.includes('popup-closed-by-user')) {
         msg = "Google Sign-In popup was closed.";
       } else if (code === 'auth/operation-not-allowed' || rawMsg.includes('operation-not-allowed')) {
         msg = "Google Sign-In is not enabled in your Firebase Console under Authentication > Sign-in method.";
@@ -231,6 +238,27 @@ export const AuthModal: React.FC = () => {
             </div>
 
             {/* Quick Action Buttons for common error scenarios */}
+            {error.includes("unauthorized-domain") && (
+              <div className="mt-2 bg-amber-50 border-2 border-amber-500 rounded p-3 text-amber-950 font-sans text-xs flex flex-col gap-2 shadow-[2px_2px_0px_#d97706]">
+                <div className="font-bold flex items-center gap-1.5 text-amber-900 text-sm">
+                  <span>⚠️ Firebase Domain Whitelist Required</span>
+                </div>
+                <p className="text-xs leading-relaxed text-amber-900">
+                  Firebase Authentication has blocked sign-ins from <strong>{typeof window !== 'undefined' ? window.location.hostname : 'this domain'}</strong> because it is not added to your Firebase Authorized Domains whitelist.
+                </p>
+                <div className="bg-amber-100 p-2 rounded text-[11px] font-mono select-all text-amber-900 border border-amber-300">
+                  Firebase Console → Authentication → Settings → Authorized domains → Add "{typeof window !== 'undefined' ? window.location.hostname : 'ats-resume-engine.onrender.com'}"
+                </div>
+                <button
+                  type="button"
+                  onClick={continueAsGuest}
+                  className="mt-1 w-full py-2.5 bg-yellow-400 hover:bg-yellow-500 text-black font-sans font-extrabold uppercase text-xs rounded border-2 border-black shadow-[2px_2px_0px_#000] cursor-pointer flex items-center justify-center gap-2 transition-all active:translate-x-[1px] active:translate-y-[1px]"
+                >
+                  <span>⚡ Continue in Guest / Demo Mode (Instant Access)</span>
+                </button>
+              </div>
+            )}
+
             {error.includes("already exists") && mode === 'signup' && (
               <button
                 type="button"
@@ -401,6 +429,19 @@ export const AuthModal: React.FC = () => {
             </button>
           )}
         </div>
+
+        {/* Direct Guest Access Alternative */}
+        {mode !== 'forgot_password' && (
+          <div className="mt-4 pt-3 border-t border-dashed border-gray-300 text-center">
+            <button
+              type="button"
+              onClick={continueAsGuest}
+              className="w-full py-2 bg-gray-50 hover:bg-yellow-50 text-gray-800 hover:text-black font-sans font-bold text-xs uppercase rounded border border-gray-400 hover:border-black shadow-[1px_1px_0px_#000] cursor-pointer flex items-center justify-center gap-1.5 transition-all"
+            >
+              <span>⚡ Skip Sign In & Explore as Guest</span>
+            </button>
+          </div>
+        )}
 
       </div>
     </div>
